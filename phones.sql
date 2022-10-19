@@ -19,3 +19,44 @@ ORDER BY user_id;
 
 SELECT avg(price) FROM phones
 WHERE brand='Nokia';
+
+
+/* sorting */
+
+SELECT * FROM users
+ORDER BY height, birthday ASC
+LIMIT 10
+OFFSET 100;
+
+SELECT * FROM users
+ORDER BY height, birthday ASC, first_name;
+
+SELECT * FROM phones
+ORDER BY quantity
+LIMIT 10;
+
+SELECT * FROM phones
+ORDER BY price DESC;
+
+SELECT first_name, extract('year' from age(birthday)) AS "Age" from users
+ORDER BY  extract('year' from age(birthday)), first_name;
+
+SELECT count(*), "Age" FROM
+(SELECT first_name, extract('year' from age(birthday)) AS "Age" from users) AS "u_w_age"
+GROUP BY "Age"
+ORDER BY "Age";
+
+/* filtering
+HAVING */
+
+SELECT count(*), "Age" FROM
+(SELECT first_name, extract('year' from age(birthday)) AS "Age" from users) AS "u_w_age"
+GROUP BY "Age"
+HAVING count(*) >=10
+ORDER BY count(*) DESC;
+
+
+SELECT brand, sum(quantity) from phones
+GROUP BY brand
+HAVING sum(quantity) > 1000
+ORDER BY brand

@@ -230,4 +230,194 @@ FROM users AS u
 JOIN orders AS o
 ON u.id=o.user_id
 GROUP BY u.id
-ORDER BY u.id
+ORDER BY u.id;
+
+
+
+SELECT otp.order_id ,p.brand, p.model
+FROM orders_to_phones AS otp 
+JOIN phones AS p 
+ON otp.phone_id = p.id 
+WHERE p.model ILIKE '4%' AND p.brand ILIKE 'samsung';
+
+SELECT p.id, p.brand, p.model, otp.quantity
+FROM orders_to_phones as otp 
+JOIN phones AS p 
+ON otp.phone_id=p.id 
+WHERE otp.order_id = 2;
+
+SELECT sum(quantity) 
+FROM orders_to_phones 
+WHERE order_id = 3
+GROUP BY order_id;
+
+SELECT sum(otp.quantity) , p.brand, p.model
+FROM orders_to_phones AS otp 
+JOIN phones AS p 
+ON otp.phone_id = p.id 
+GROUP BY p.id
+ORDER BY sum(otp.quantity)  DESC 
+LIMIT 1;
+
+
+
+SELECT  count("pid"), "uid"
+FROM (
+        SELECT u.id AS "uid", p.id AS "pid"
+        FROM users AS u 
+        JOIN orders AS o 
+        ON u.id = o.user_id 
+        JOIN orders_to_phones AS otp 
+        ON o.id = otp.order_id 
+        JOIN phones AS p 
+        ON otp.phone_id = p.id 
+        GROUP BY u.id, p.id    
+) AS "uid_w_pid"
+GROUP BY "uid"
+ORDER BY "uid";
+
+
+SELECT avg("sum")
+FROM (
+    SELECT sum(otp.quantity*p.price) AS "sum"
+    FROM orders_to_phones AS otp 
+    JOIN phones AS p 
+    ON otp.phone_id = p.id 
+    GROUP BY otp.order_id
+) AS "Avg_check";
+
+SELECT "sum"
+FROM
+    (SELECT avg("sum")
+    FROM (
+        SELECT sum(otp.quantity*p.price) AS "sum"
+        FROM orders_to_phones AS otp 
+        JOIN phones AS p 
+        ON otp.phone_id = p.id 
+        GROUP BY otp.order_id
+    ) AS "sum_once_check") AS "Avg_check"
+WHERE "sum_once_check"."sum" > "Avg_check"
+
+--1 находим сумму каждого из заказов
+    SELECT otp.order_id, sum(otp.quantity*p.price) AS "cost"
+    FROM orders_to_phones AS otp 
+    JOIN phones AS p 
+    ON otp.phone_id = p.id 
+    GROUP BY otp.order_id
+--2 находим средний чек
+    SELECT avg("cost")
+    FROM (
+        SELECT otp.order_id, sum(otp.quantity*p.price) AS "cost"
+        FROM orders_to_phones AS otp 
+        JOIN phones AS p 
+        ON otp.phone_id = p.id 
+        GROUP BY otp.order_id
+    ) AS "owc"
+--3 находим заказы, сумма которых выше среднего чека
+    SELECT "owc".*
+    FROM (
+        SELECT otp.order_id, sum(otp.quantity*p.price) AS "cost"
+        FROM orders_to_phones AS otp 
+        JOIN phones AS p 
+        ON otp.phone_id = p.id 
+        GROUP BY otp.order_id
+    ) AS "owc"
+    WHERE "owc"."cost" > (
+        SELECT avg("cost")
+        FROM (
+        SELECT otp.order_id, sum(otp.quantity*p.price) AS "cost"
+        FROM orders_to_phones AS otp 
+        JOIN phones AS p 
+        ON otp.phone_id = p.id 
+        GROUP BY otp.order_id
+    ) AS "owc"
+    )
+-- refactor
+    WITH "orders_with_costs" AS (
+        SELECT otp.order_id, sum(otp.quantity*p.price) AS "cost"
+        FROM orders_to_phones AS otp 
+        JOIN phones AS p 
+        ON otp.phone_id = p.id 
+        GROUP BY otp.order_id
+        )
+
+    SELECT "owc".*
+    FROM "orders_with_costs" AS "owc"
+    WHERE "owc"."cost" >  (
+        SELECT avg("owc"."cost")
+        FROM "orders_with_costs" AS "owc"
+    )
+
+
+
+SELECT o.user_id, sum(otp.quantity)
+FROM users AS u 
+JOIN orders AS o 
+ON u.id = o.user_id 
+JOIN orders_to_phones AS otp 
+ON o.id = otp.order_id
+GROUP BY o.user_id
+
+SELECT avg("sum")
+FROM (
+    SELECT o.user_id, sum(otp.quantity) AS "sum"
+    FROM users AS u 
+    JOIN orders AS o 
+    ON u.id = o.user_id 
+    JOIN orders_to_phones AS otp 
+    ON o.id = otp.order_id
+    GROUP BY o.user_id
+    ) AS "owq"
+
+SELECT "owq"."sum"
+FROM (
+    SELECT o.user_id, sum(otp.quantity)
+    FROM users AS u 
+    JOIN orders AS o 
+    ON u.id = o.user_id 
+    JOIN orders_to_phones AS otp 
+    ON o.id = otp.order_id
+    GROUP BY o.user_id
+    ) AS "owq"
+WHERE "owq"."sum" > (
+    SELECT avg("sum")
+    FROM (
+    SELECT o.user_id, sum(otp.quantity) AS "sum"
+    FROM users AS u 
+    JOIN orders AS o 
+    ON u.id = o.user_id 
+    JOIN orders_to_phones AS otp 
+    ON o.id = otp.order_id
+    GROUP BY o.user_id
+    ) AS "owq"
+)
+
+WITH "orders_with_quantities" AS (
+    SELECT o.user_id, sum(otp.quantity) AS "quant"
+    FROM users AS u 
+    JOIN orders AS o 
+    ON u.id = o.user_id 
+    JOIN orders_to_phones AS otp 
+    ON o.id = otp.order_id
+    GROUP BY o.user_id
+)
+SELECT "owq".*
+FROM "orders_with_quantities" AS "owq"
+WHERE "owq"."quant" > (
+    SELECT avg("owq"."quant")
+    FROM "orders_with_quantities" AS "owq"
+) 
+
+WITH "orders_with_costs" AS (
+        SELECT otp.order_id, sum(otp.quantity*p.price) AS "cost"
+        FROM orders_to_phones AS otp 
+        JOIN phones AS p 
+        ON otp.phone_id = p.id 
+        GROUP BY otp.order_id
+        )
+    SELECT "owc".*
+    FROM "orders_with_costs" AS "owc"
+    WHERE "owc"."cost" >  (
+        SELECT avg("owc"."cost")
+        FROM "orders_with_costs" AS "owc"
+    )
